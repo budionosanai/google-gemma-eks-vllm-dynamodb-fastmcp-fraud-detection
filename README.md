@@ -85,4 +85,4 @@ You can see the instruction in [this file.](./INSTRUCTION.md)
 
 ## 🙏 Acknowledgments
 
-**Amazon Web Services (AWS), Google Gemma, vLLM, Terraform, FastMCP and Langchain**
+**Amazon Web Services (AWS), Google Gemma, vLLM, Terraform, FastMCP, Langchain and Claude for generate architecture**
