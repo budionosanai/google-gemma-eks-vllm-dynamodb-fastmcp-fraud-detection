@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemma-4-vllm
+spec:
+  selector:
+    app: gemma-4-vllm
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP

@@ -1,0 +1,6 @@
+boto3
+httpx
+mcp
+fastmcp
+pydantic
+uvicorn

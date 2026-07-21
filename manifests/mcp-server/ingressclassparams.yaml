@@ -1,0 +1,7 @@
+apiVersion: eks.amazonaws.com/v1
+kind: IngressClassParams
+metadata:
+  name: mcp-server-gemma
+  namespace: default
+spec:
+  scheme: internet-facing

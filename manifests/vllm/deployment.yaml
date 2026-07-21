@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-4-vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemma-4-vllm
+  template:
+    metadata:
+      labels:
+        app: gemma-4-vllm
+    spec:
+      containers:
+      - name: inference-server
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/vllm-gemma-4-eks:0.25.0-eks
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+        command: [ "vllm", "serve" ]
+        args:
+        - google/gemma-4-E4B-it
+        - --gpu-memory-utilization=0.90
+        - --tensor-parallel-size=1
+        - --max-model-len=20000
+        - --download-dir=/models
+        env:
+        - name: VLLM_ATTENTION_BACKEND
+          value: "TRITON_ATTN"
+        - name: PORT
+          value: "8000"
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: model-storage
+          mountPath: /models
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: auto-ebs-sc

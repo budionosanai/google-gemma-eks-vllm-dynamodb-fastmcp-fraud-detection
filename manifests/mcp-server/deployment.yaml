@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server-gemma
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server-gemma
+  template:
+    metadata:
+      labels:
+        app: mcp-server-gemma
+    spec:
+      serviceAccountName: mcp-server-sa
+      containers:
+      - name: mcp-server
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/mcp-server-gemma-4:latest
+        ports:
+        - containerPort: 8080
