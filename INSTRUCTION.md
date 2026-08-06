@@ -4,14 +4,20 @@
 
 2. Install Terraform and kubectl following instruction number 6.
 
-3. Write and run this shell script in **scripts** folder for pull and push vLLM image to Amazon ECR private repository.
+3. Clone this repository in the JupyterLab instance terminal and all files are now available.
+
+```bash
+git clone https://github.com/budionosanai/google-gemma-eks-vllm-dynamodb-fastmcp-fraud-detection.git
+```
+
+4. Write and run this shell script in **scripts** folder for pull and push vLLM image to Amazon ECR private repository.
 ```
 cd scripts
 chmod +x vllm-to-ecr.sh
 ./vllm-to-ecr.sh
 ```
 
-4. Write and run this shell script in **mcp-server** folder for build and push MCP server folder to Amazon ECR private repository.
+5. Write and run this shell script in **mcp-server** folder for build and push MCP server folder to Amazon ECR private repository.
 ```
 cd ..
 
@@ -28,7 +34,7 @@ pip install sagemaker-studio-image-build
 sm-docker build . --repository mcp-server-gemma-4:latest
 ```
 
-5. Write and run this Terraform script in **terraform** folder for create EKS cluster, DynamoDB table and VPC networking.
+6. Write and run this Terraform script in **terraform** folder for create EKS cluster, DynamoDB table and VPC networking.
 ```
 cd ..
 
@@ -41,7 +47,7 @@ terraform plan
 terraform apply --auto-approve
 ```
 
-6. Generate data and upload data to DynamoDB "Transactions" table with write this shell script.
+7. Generate data and upload data to DynamoDB "Transactions" table with write this shell script.
 ```
 cd ..
 
