@@ -1,7 +1,8 @@
+import os
 import asyncio
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-ALB_URL = "http://ALB_DNS_name/mcp"
+ALB_URL = os.getenv("ALB_URL")
 
 
 async def main():
@@ -11,7 +12,7 @@ async def main():
         {
             "fraud": {
                 "transport": "http",
-                "url": ALB_URL,
+                "url": f"http://{ALB_URL}/mcp",
             }
         }
     )

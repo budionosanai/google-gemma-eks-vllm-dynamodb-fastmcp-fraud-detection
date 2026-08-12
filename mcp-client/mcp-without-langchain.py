@@ -1,7 +1,9 @@
+import os
 import asyncio
 from fastmcp import Client
 
-client = Client("http://ALB_DNS_name/mcp")
+ALB_URL = os.getenv("ALB_URL")
+client = Client(f"http://{ALB_URL}/mcp")
 
 
 async def main():

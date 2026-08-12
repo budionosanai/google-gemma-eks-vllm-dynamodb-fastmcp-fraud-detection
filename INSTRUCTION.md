@@ -1,23 +1,21 @@
 ## MCP Server Part 1 : SageMaker Studio, vLLM, Gemma 4 and Terraform for Fraud Detection
 
-1. Make sure already following instruction from [this link](https://dev.to/budionosan/mcp-server-part-1-sagemaker-studio-vllm-gemma-4-and-terraform-for-fraud-detection-3k3e) from step 1 until step 5.
+1. Make sure already followed the instructions at [this link](https://dev.to/budionosan/mcp-server-part-1-sagemaker-studio-vllm-gemma-4-and-terraform-for-fraud-detection-3k3e) from step 1 until step 6 about installing Terraform and kubectl.
 
-2. Install Terraform and kubectl following instruction number 6.
-
-3. Clone this repository in the JupyterLab instance terminal and all files are now available.
-
-```bash
+2. Clone this repository in the JupyterLab instance terminal and all files are now available.
+```
 git clone https://github.com/budionosanai/google-gemma-eks-vllm-dynamodb-fastmcp-fraud-detection.git
+cd google-gemma-eks-vllm-dynamodb-fastmcp-fraud-detection
 ```
 
-4. Write and run this shell script in **scripts** folder for pull and push vLLM image to Amazon ECR private repository.
+3. Run this shell script in the **scripts** folder to pull and push the vLLM image to ECR private repository.
 ```
 cd scripts
 chmod +x vllm-to-ecr.sh
 ./vllm-to-ecr.sh
 ```
 
-5. Write and run this shell script in **mcp-server** folder for build and push MCP server folder to Amazon ECR private repository.
+4. Run this script in the **mcp-server** folder to build and push the MCP server image to the ECR private repository.
 ```
 cd ..
 
@@ -34,7 +32,7 @@ pip install sagemaker-studio-image-build
 sm-docker build . --repository mcp-server-gemma-4:latest
 ```
 
-6. Write and run this Terraform script in **terraform** folder for create EKS cluster, DynamoDB table and VPC networking.
+5. Run this Terraform command in the **terraform** folder to create EKS cluster, DynamoDB table and VPC networking.
 ```
 cd ..
 
@@ -47,7 +45,7 @@ terraform plan
 terraform apply --auto-approve
 ```
 
-7. Generate data and upload data to DynamoDB "Transactions" table with write this shell script.
+6. Run this script in the **scripts** folder to generate data and upload it to the "Transactions" DynamoDB table.
 ```
 cd ..
 
@@ -60,7 +58,7 @@ python generate-data.py
 
 ## MCP Server Part 2 : SageMaker Studio, Kubernetes manifest, Load Balancer and MCP Client for Fraud Detection
 
-1. Update EKS Auto Mode cluster by run this shell script.
+1. Run this script in the **manifests** folder to update the EKS Auto Mode cluster.
 ```
 cd ..
 
@@ -72,37 +70,37 @@ export AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
 
 aws eks update-kubeconfig --region us-west-2 --name vllm-mcp-server
 
-aws iam list-roles \
-  --query "Roles[?contains(RoleName, 'SageMaker')].[RoleName,Arn]" \
-  --output table
+export ROLE_NAME=$(aws iam list-roles \
+  --query "Roles[?contains(RoleName, 'SageMaker-ExecutionRole')].RoleName" \
+  --output text)
 
 aws eks create-access-entry \
   --cluster-name vllm-mcp-server \
-  --principal-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/service-role/AmazonSageMaker-ExecutionRole-xxxxx \
+  --principal-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/service-role/${ROLE_NAME} \
   --type STANDARD \
   --region us-west-2
 
 aws eks associate-access-policy \
   --cluster-name vllm-mcp-server \
-  --principal-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/service-role/AmazonSageMaker-ExecutionRole-xxxxx \
+  --principal-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/service-role/${ROLE_NAME} \
   --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
   --access-scope type=cluster \
   --region us-west-2
 ```
 
-2. Run this Kubernetes manifest of this vLLM service.
+2. Apply this Kubernetes manifest in the **manifests/vllm** folder to deploy the vLLM service.
 ```
 cd vllm
 kubectl apply -f ebs.yaml
 kubectl apply -f pvc.yaml
 kubectl apply -f nodepool.yaml
-kubectl apply -f envsubst < deployment.yaml | kubectl apply -f -
+envsubst < deployment.yaml | kubectl apply -f -
 kubectl apply -f service.yaml
 ```
 
 ![vLLM manifest](./images/vllm-manifest.PNG)
 
-3. Create and configure an EKS Pod Identity for access to Amazon DynamoDB.
+3. Run this script in the **manifests/mcp-server** folder to create and configure EKS Pod Identity for access to Amazon DynamoDB.
 ```
 cd ..
 
@@ -162,7 +160,7 @@ aws eks create-pod-identity-association \
     --role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/MCPServerPodRole
 ```
 
-4. Run this Kubernetes manifest of this MCP server ingress/load balancer.
+4. Apply this Kubernetes manifest in the **manifests/mcp-server** folder to deploy the MCP server ingress/load balancer.
 ```
 kubectl apply -f serviceaccount.yaml
 envsubst < deployment.yaml | kubectl apply -f -
@@ -174,44 +172,28 @@ kubectl apply -f ingress.yaml
 
 ![MCP server manifest](./images/mcp-server-manifest.PNG)
 
-5. Go to EC2 -> Load Balancing -> Load Balancers -> checklist Load Balancer -> Details -> **Copy DNS name to MCP client code** in **mcp-client** folder.
+4A. [OPTIONAL] Navigate to Amazon EC2 -> Load Balancing -> Load Balancers to make sure ingress/load balancer is now available and wait until load balancer status change to Active.
 
 ![MCP server ALB](./images/mcp-server-alb.PNG)
 
-6. To access the MCP server, you need an MCP client using native MCP client from FastMCP or MCP client from Langchain.
+5. To access the MCP server, you need an MCP client such as the native MCP client from FastMCP or the MCP client from Langchain. Run this script in the **mcp-client** folder to run the fraud detection MCP client.
 ```
 cd ..
 
 cd ..
 
 cd mcp-client
-```
 
-7A. Open mcp-with-langchain.py file in mcp-client folder then look at this line of code.
-```
-client = Client("http://ALB_DNS_name/mcp")
-```
-
-7B. Replace ALB_DNS_name to DNS name of load balancer that already created and run the shell script below.
-```
 pip install langchain-mcp-adapters
 
-python mcp-with-langchain.py
-```
+ALB_URL=$(kubectl get ingress mcp-server-gemma -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') python mcp-with-langchain.py
 
-8A. Open mcp-without-langchain.py file in mcp-client folder look at this line of code.
-```
-ALB_URL = "http://ALB_DNS_name/mcp"
-```
-
-8B. Replace ALB_DNS_name to DNS name of load balancer that already created then run MCP without Langchain client code.
-```
-python mcp-without-langchain.py
+ALB_URL=$(kubectl get ingress mcp-server-gemma -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') python mcp-without-langchain.py
 ```
 
 ![MCP client result](./images/mcp-client-result.PNG)
 
-9. Write and run this Terraform script in **terraform** folder for delete all AWS services such as EKS, VPC, DynamoDB and other services.
+6. Run this Terraform command in the **terraform** folder to delete all AWS services such as EKS, VPC, DynamoDB and other services.
 ```
 cd ..
 
@@ -220,4 +202,25 @@ cd terraform
 terraform destroy --auto-approve
 ```
 
-10. In SageMaker Studio JupyterLab, click "Stop space" and [delete your SageMaker Studio domain.](https://docs.aws.amazon.com/sagemaker/latest/dg/gs-studio-delete-domain.html#gs-studio-delete-domain-studio)
+7. Run this script to delete the vLLM image and fraud detection MCP server image in the ECR private repositories.
+```
+aws ecr delete-repository --repository-name mcp-server-gemma-4 --force --region us-west-2
+
+aws ecr delete-repository --repository-name vllm-gemma-4-eks --force --region us-west-2
+```
+
+8. Run this script to delete the IAM role and IAM policy.
+```
+export POLICY_ARN=$(aws iam list-policies \
+    --scope Local \
+    --query 'Policies[?PolicyName==`DynamoDBMCPPolicy`].Arn' \
+    --output text)
+
+aws iam detach-role-policy --role-name MCPServerPodRole --policy-arn "$POLICY_ARN"
+
+aws iam delete-policy --policy-arn "$POLICY_ARN"
+
+aws iam delete-role --role-name MCPServerPodRole
+```
+
+9. In SageMaker Studio JupyterLab, click **Stop space** and [delete your SageMaker Studio domain.](https://docs.aws.amazon.com/sagemaker/latest/dg/gs-studio-delete-domain.html#gs-studio-delete-domain-studio)
